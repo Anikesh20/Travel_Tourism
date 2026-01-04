@@ -1,214 +1,185 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Search,
-    Filter,
-    Mail,
-    Phone,
-    Calendar,
-    MapPin,
-    Eye,
-    Trash2,
-    CheckCircle,
-    Clock,
-    XCircle
-} from 'lucide-react';
-import { enquiriesService } from '../../services/api';
+import { enquiryService } from '../../services/api';
+import { Mail, Phone, Calendar, MessageSquare, Trash2, CheckCircle, Clock2, MoreHorizontal, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const Enquiries = () => {
+const AdminEnquiries = () => {
     const [enquiries, setEnquiries] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [filter, setFilter] = useState('all');
 
-    useEffect(() => {
-        fetchEnquiries();
-    }, []);
-
-    const fetchEnquiries = async () => {
+    const loadEnquiries = async () => {
+        setLoading(true);
         try {
-            const response = await enquiriesService.getAll();
-            if (response.success) {
+            const response = await enquiryService.getAll();
+            if (response.status === 'success') {
                 setEnquiries(response.data);
             }
-        } catch (error) {
-            console.error('Error fetching enquiries:', error);
+        } catch (err) {
+            console.error('Failed to fetch enquiries:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'confirmed': return <CheckCircle size={16} className="text-emerald-500" />;
-            case 'pending': return <Clock size={16} className="text-orange-500" />;
-            case 'cancelled': return <XCircle size={16} className="text-red-500" />;
-            default: return <Clock size={16} className="text-blue-500" />;
+    useEffect(() => {
+        loadEnquiries();
+    }, []);
+
+    const handleStatusUpdate = async (id, newStatus) => {
+        try {
+            await enquiryService.updateStatus(id, newStatus);
+            loadEnquiries();
+        } catch (err) {
+            console.error('Failed to update status:', err);
         }
     };
 
-    const getStatusBadge = (status) => {
-        const styles = {
-            confirmed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-            pending: 'bg-orange-50 text-orange-600 border-orange-200',
-            cancelled: 'bg-red-50 text-red-600 border-red-200',
-            default: 'bg-blue-50 text-blue-600 border-blue-200'
-        };
-
-        return styles[status] || styles.default;
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this enquiry?')) return;
+        try {
+            await enquiryService.delete(id);
+            loadEnquiries();
+        } catch (err) {
+            console.error('Failed to delete enquiry:', err);
+        }
     };
 
-    const filteredEnquiries = enquiries.filter(enquiry => {
-        const matchesSearch = enquiry.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            enquiry.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filterStatus === 'all' || enquiry.status === filterStatus;
-        return matchesSearch && matchesFilter;
+    const filteredEnquiries = enquiries.filter(enq => {
+        if (filter === 'all') return true;
+        return enq.status === filter;
     });
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-primary"></div>
-            </div>
-        );
-    }
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'new': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'read': return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 'responded': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            default: return 'bg-gray-100 text-gray-700 border-gray-200';
+        }
+    };
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="p-8">
+            <div className="flex justify-between items-end mb-10">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-brand-dark">Enquiries</h1>
-                    <p className="text-gray-500 mt-1">Manage customer enquiries and requests</p>
+                    <h1 className="text-4xl font-black text-brand-primary tracking-tighter mb-2">Guest Enquiries</h1>
+                    <p className="text-gray-500 font-medium">Manage and respond to your visitor's travel requests.</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <span className="px-4 py-2 bg-brand-primary/10 text-brand-primary rounded-full text-sm font-bold">
-                        {filteredEnquiries.length} Total
-                    </span>
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Search by name or email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 ring-brand-primary/20 focus:border-brand-primary transition-all"
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <Filter size={20} className="text-gray-400" />
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 ring-brand-primary/20 focus:border-brand-primary transition-all font-medium"
+                <div className="flex bg-gray-100 p-1 rounded-2xl">
+                    {['all', 'new', 'read', 'responded'].map((type) => (
+                        <button
+                            key={type}
+                            onClick={() => setFilter(type)}
+                            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filter === type
+                                    ? 'bg-white text-brand-primary shadow-sm'
+                                    : 'text-gray-500 hover:text-brand-primary'
+                                }`}
                         >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
-                    </div>
+                            {type}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {/* Enquiries List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="bg-gray-50/80 border-b border-gray-100">
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Contact</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Destination</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {filteredEnquiries.length > 0 ? filteredEnquiries.map((enquiry) => (
-                                <tr key={enquiry.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-dark flex items-center justify-center text-white font-bold text-sm">
-                                                {enquiry.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-brand-dark">{enquiry.name}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                                <Mail size={14} className="text-gray-400" />
-                                                <span>{enquiry.email}</span>
-                                            </div>
-                                            {enquiry.phone && (
-                                                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                                    <Phone size={14} className="text-gray-400" />
-                                                    <span>{enquiry.phone}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center space-x-2">
-                                            <MapPin size={16} className="text-brand-primary" />
-                                            <span className="font-medium text-gray-700">
-                                                {enquiry.destination || 'General Enquiry'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                            <Calendar size={14} className="text-gray-400" />
-                                            <span>{new Date(enquiry.created_at).toLocaleDateString()}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusBadge(enquiry.status)}`}>
-                                            {getStatusIcon(enquiry.status)}
-                                            <span className="uppercase">{enquiry.status}</span>
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center space-x-2">
-                                            <button className="p-2 text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors">
-                                                <Eye size={18} />
-                                            </button>
-                                            <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center space-y-3">
-                                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                                <Mail size={32} className="text-gray-400" />
-                                            </div>
-                                            <p className="text-gray-500 font-medium">No enquiries found</p>
-                                            <p className="text-sm text-gray-400">Try adjusting your search or filters</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
                 </div>
-            </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-6">
+                    <AnimatePresence>
+                        {filteredEnquiries.map((enq) => (
+                            <motion.div
+                                key={enq.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-start md:items-center hover:shadow-xl transition-all group"
+                            >
+                                {/* Left: User Info */}
+                                <div className="flex items-center space-x-5 w-full md:w-1/4">
+                                    <div className="w-16 h-16 bg-brand-accent rounded-2xl flex items-center justify-center flex-shrink-0">
+                                        <User className="text-brand-primary" size={28} />
+                                    </div>
+                                    <div className="overflow-hidden">
+                                        <h3 className="text-xl font-black text-brand-primary tracking-tight truncate">{enq.name}</h3>
+                                        <div className={`mt-1 inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(enq.status)}`}>
+                                            {enq.status}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Center: Details */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-grow w-full md:w-auto">
+                                    <div className="flex items-center space-x-3 text-gray-500">
+                                        <Phone size={18} className="text-brand-secondary" />
+                                        <span className="text-sm font-bold">{enq.phone}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3 text-gray-500">
+                                        <Mail size={18} className="text-brand-secondary" />
+                                        <span className="text-sm font-bold truncate">{enq.email}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3 text-gray-500">
+                                        <Calendar size={18} className="text-brand-secondary" />
+                                        <span className="text-sm font-bold">{enq.date || 'TBD'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Message Tooltip/Preview */}
+                                <div className="relative group/msg w-full md:w-1/4">
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 italic text-gray-500 text-sm line-clamp-2">
+                                        "{enq.message}"
+                                    </div>
+                                    {/* Full message on hover could be added here */}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+                                    {enq.status === 'new' && (
+                                        <button
+                                            onClick={() => handleStatusUpdate(enq.id, 'read')}
+                                            className="p-3 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                                            title="Mark as Read"
+                                        >
+                                            <Clock2 size={20} />
+                                        </button>
+                                    )}
+                                    {enq.status !== 'responded' && (
+                                        <button
+                                            onClick={() => handleStatusUpdate(enq.id, 'responded')}
+                                            className="p-3 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
+                                            title="Mark as Responded"
+                                        >
+                                            <CheckCircle size={20} />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleDelete(enq.id)}
+                                        className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors ml-4"
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+
+                    {filteredEnquiries.length === 0 && (
+                        <div className="py-20 text-center">
+                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <MessageSquare className="text-gray-300" size={40} />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-400">No enquiries found</h3>
+                            <p className="text-gray-400">Everything is up to date.</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
 
-export default Enquiries;
+export default AdminEnquiries;

@@ -1,46 +1,31 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Outlet } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import About from './pages/About';
 import ServicesPage from './pages/ServicesPage';
 import Contact from './pages/Contact';
+import ServiceDetail from './pages/ServiceDetail';
+import PackageDetail from './pages/PackageDetail';
 
 // Admin Imports
-import AdminLayout from './components/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Enquiries from './pages/admin/Enquiries';
-import ComingSoon from './pages/admin/ComingSoon';
+import Login from './pages/admin/Login';
+import AdminLayout from './layouts/AdminLayout';
+import DashboardHome from './pages/admin/DashboardHome';
+import AdminSettings from './pages/admin/Settings';
+import Admins from './pages/admin/Admins';
+import AdminPackages from './pages/admin/Packages';
+import AdminEnquiries from './pages/admin/Enquiries';
+import AdminNewsletters from './pages/admin/Newsletters';
 
-const LayoutWrapper = () => {
-    const location = useLocation();
-    const isAdminPath = location.pathname.startsWith('/admin');
-
-    if (isAdminPath) {
-        return (
-            <AdminLayout>
-                <Routes>
-                    <Route path="/" element={<AdminDashboard />} />
-                    <Route path="/enquiries" element={<Enquiries />} />
-                    <Route path="/bookings" element={<ComingSoon title="Bookings Tracking" />} />
-                    <Route path="/packages" element={<ComingSoon title="Packages Editor" />} />
-                    <Route path="/settings" element={<ComingSoon title="Admin Settings" />} />
-                </Routes>
-            </AdminLayout>
-        );
-    }
-
+const PublicLayout = () => {
     return (
         <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow">
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/services" element={<ServicesPage />} />
-                    <Route path="/contact" element={<Contact />} />
-                </Routes>
+                <Outlet />
             </main>
             <Footer />
         </div>
@@ -50,7 +35,31 @@ const LayoutWrapper = () => {
 function App() {
     return (
         <Router>
-            <LayoutWrapper />
+            <ScrollToTop />
+            <Routes>
+                {/* Public Routes */}
+                <Route element={<PublicLayout />}>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/services" element={<ServicesPage />} />
+                    <Route path="/services/:id" element={<ServiceDetail />} />
+                    <Route path="/package/:id" element={<PackageDetail />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="*" element={<div className="pt-32 text-center h-screen">404 - Page Not Found. <Link to="/" className="text-brand-secondary">Return Home</Link></div>} />
+                </Route>
+
+                {/* Admin Routes */}
+                <Route path="/admin" element={<Login />} />
+
+                <Route path="/admin" element={<AdminLayout />}>
+                    <Route path="dashboard" element={<DashboardHome />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                    <Route path="admins" element={<Admins />} />
+                    <Route path="packages" element={<AdminPackages />} />
+                    <Route path="enquiries" element={<AdminEnquiries />} />
+                    <Route path="newsletters" element={<AdminNewsletters />} />
+                </Route>
+            </Routes>
         </Router>
     );
 }

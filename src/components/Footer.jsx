@@ -1,90 +1,129 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Globe, Instagram, Facebook, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Globe, Instagram, Facebook, Twitter, Linkedin, Mail, Phone, MapPin, ArrowRight, Loader2 } from 'lucide-react';
+import { newsletterService } from '../services/api';
 
 const Footer = () => {
+    const [email, setEmail] = useState('');
+    const [status, setStatus] = useState({ loading: false, message: '', type: '' });
+
+    const handleNewsletter = async (e) => {
+        e.preventDefault();
+        if (!email) return;
+
+        setStatus({ loading: true, message: '', type: '' });
+        try {
+            const data = await newsletterService.subscribe(email);
+            if (data.success) {
+                setStatus({ loading: false, message: 'Welcome to the inner circle!', type: 'success' });
+                setEmail('');
+            } else {
+                setStatus({ loading: false, message: data.message || 'Subscription failed', type: 'error' });
+            }
+        } catch (error) {
+            setStatus({ loading: false, message: 'Connection lost. Try again.', type: 'error' });
+        }
+    };
+
     return (
-        <footer className="bg-brand-dark text-white pt-24 pb-12">
+        <footer className="bg-[#0a0a0a] text-white pt-20 md:pt-32 pb-12 md:pb-16 text-center md:text-left">
             <div className="section-container">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
-                    <div className="space-y-8">
-                        <Link to="/" className="flex items-center space-x-2">
-                            <div className="bg-brand-primary p-2 rounded-lg border border-white/20">
-                                <Globe className="text-white w-6 h-6" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 md:gap-16 mb-16 md:mb-24">
+                    {/* Brand Section */}
+                    <div className="lg:col-span-5 space-y-8 md:space-y-10">
+                        <Link to="/" className="flex items-center justify-center md:justify-start space-x-3 group">
+                            <div className="bg-brand-secondary p-2 rounded-xl group-hover:rotate-12 transition-transform duration-300">
+                                <Globe className="text-brand-primary w-5 h-5 md:w-6 md:h-6" />
                             </div>
-                            <span className="text-2xl font-bold font-display">
+                            <span className="text-2xl md:text-3xl font-black font-display tracking-tighter">
                                 Travel<span className="text-brand-secondary">Quest</span>
                             </span>
                         </Link>
-                        <p className="text-gray-400 leading-relaxed">
-                            We are a premium travel agency dedicated to providing seamless travel experiences. From booking flights to customized tour packages, we handle it all.
+                        <p className="text-gray-400 text-base md:text-lg leading-relaxed max-w-md font-medium mx-auto md:mx-0">
+                            We curate extraordinary journeys for the discerning traveler. From hidden gems to iconic landmarks, experience the world like never before.
                         </p>
-                        <div className="flex space-x-4">
+                        <div className="flex justify-center md:justify-start space-x-4 md:space-x-5">
                             {[Instagram, Facebook, Twitter, Linkedin].map((Icon, i) => (
-                                <a key={i} href="#" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-brand-secondary hover:text-brand-primary hover:border-brand-secondary transition-all">
-                                    <Icon size={18} />
+                                <a key={i} href="#" className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 flex items-center justify-center hover:bg-brand-secondary hover:text-brand-primary transition-all duration-300 border border-white/5">
+                                    <Icon size={18} className="md:w-5 md:h-5" />
                                 </a>
                             ))}
                         </div>
                     </div>
 
-                    <div>
-                        <h4 className="text-xl font-bold mb-8">Quick Links</h4>
-                        <ul className="space-y-4 text-gray-400">
-                            <li><Link to="/about" className="hover:text-brand-secondary transition-colors">About Us</Link></li>
-                            <li><Link to="/services" className="hover:text-brand-secondary transition-colors">Our Services</Link></li>
-                            <li><Link to="/#destinations" className="hover:text-brand-secondary transition-colors">Popular Packages</Link></li>
-                            <li><Link to="/contact" className="hover:text-brand-secondary transition-colors">Contact Support</Link></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Privacy Policy</a></li>
+                    {/* Links Sections */}
+                    <div className="lg:col-span-2 hidden sm:block">
+                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-brand-secondary mb-8 md:mb-10">Navigation</h4>
+                        <ul className="space-y-4 md:space-y-5 text-gray-400 font-bold text-sm">
+                            <li><Link to="/about" className="hover:text-white transition-colors flex items-center justify-center md:justify-start group"><ArrowRight size={14} className="mr-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> About Us</Link></li>
+                            <li><Link to="/services" className="hover:text-white transition-colors flex items-center justify-center md:justify-start group"><ArrowRight size={14} className="mr-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Our Services</Link></li>
+                            <li><Link to="/#destinations" className="hover:text-white transition-colors flex items-center justify-center md:justify-start group"><ArrowRight size={14} className="mr-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Destinations</Link></li>
+                            <li><Link to="/contact" className="hover:text-white transition-colors flex items-center justify-center md:justify-start group"><ArrowRight size={14} className="mr-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Contact</Link></li>
                         </ul>
                     </div>
 
-                    <div>
-                        <h4 className="text-xl font-bold mb-8">Service Areas</h4>
-                        <ul className="space-y-4 text-gray-400">
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Airline Ticketing</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Domestic Tours</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">International Vacation</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Visa Consultation</a></li>
-                            <li><a href="#" className="hover:text-brand-secondary transition-colors">Hotel Bookings</a></li>
+                    <div className="lg:col-span-2 hidden lg:block">
+                        <h4 className="text-xs font-black uppercase tracking-[0.3em] text-brand-secondary mb-10">Experience</h4>
+                        <ul className="space-y-5 text-gray-400 font-bold text-sm">
+                            <li className="hover:text-white cursor-pointer transition-colors">Luxury Tours</li>
+                            <li className="hover:text-white cursor-pointer transition-colors">Private Jets</li>
+                            <li className="hover:text-white cursor-pointer transition-colors">Adventure</li>
+                            <li className="hover:text-white cursor-pointer transition-colors">Honeymoon</li>
                         </ul>
                     </div>
 
-                    <div>
-                        <h4 className="text-xl font-bold mb-8">Contact Us</h4>
-                        <ul className="space-y-6 text-gray-400">
-                            <li className="flex items-start space-x-3">
-                                <MapPin className="text-brand-secondary flex-shrink-0" size={20} />
-                                <span>Thamel-26, Kathmandu, Nepal</span>
-                            </li>
-                            <li className="flex items-center space-x-3">
-                                <Phone className="text-brand-secondary flex-shrink-0" size={20} />
-                                <span>+977-1-4XXXXXX</span>
-                            </li>
-                            <li className="flex items-center space-x-3">
-                                <Mail className="text-brand-secondary flex-shrink-0" size={20} />
-                                <span>info@travelquest.com</span>
-                            </li>
-                            <li className="flex items-center space-x-3">
-                                <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 text-white">
-                                    <svg size={12} viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.45L0 24l7.105-1.864a11.834 11.834 0 005.736 1.482h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                                    </svg>
+                    {/* Newsletter/Contact */}
+                    <div className="lg:col-span-3">
+                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-brand-secondary mb-8 md:mb-10">Get In Touch</h4>
+                        <div className="space-y-5 md:space-y-6">
+                            <div className="flex items-center justify-center md:justify-start space-x-3 md:space-x-4 group cursor-pointer">
+                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-brand-secondary group-hover:text-brand-primary transition-all">
+                                    <Phone size={16} className="md:w-[18px] md:h-[18px]" />
                                 </div>
-                                <span className="font-bold text-emerald-500">+977-98XXXXXXXX</span>
-                            </li>
-                        </ul>
+                                <span className="text-sm font-bold text-gray-400 group-hover:text-white transition-colors">+977 1 456 7890</span>
+                            </div>
+                            <div className="flex items-center justify-center md:justify-start space-x-3 md:space-x-4 group cursor-pointer">
+                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-brand-secondary group-hover:text-brand-primary transition-all">
+                                    <Mail size={16} className="md:w-[18px] md:h-[18px]" />
+                                </div>
+                                <span className="text-sm font-bold text-gray-400 group-hover:text-white transition-colors text-ellipsis overflow-hidden">hello@travelquest.com</span>
+                            </div>
+                            <form onSubmit={handleNewsletter} className="mt-8 md:mt-10">
+                                <div className="p-1 bg-white/5 rounded-xl md:rounded-2xl flex max-w-sm mx-auto md:mx-0 border border-white/5 focus-within:border-brand-secondary/30 transition-all">
+                                    <input
+                                        type="email"
+                                        placeholder="Email Address"
+                                        className="bg-transparent border-none focus:ring-0 text-sm px-4 py-2 w-full font-bold outline-none"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        disabled={status.loading}
+                                        className="bg-brand-secondary text-brand-primary px-4 py-2 rounded-lg md:rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                    >
+                                        {status.loading ? <Loader2 className="animate-spin w-3 h-3" /> : 'Join'}
+                                    </button>
+                                </div>
+                                {status.message && (
+                                    <p className={`mt-3 text-[10px] uppercase font-black tracking-widest ${status.type === 'success' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                        {status.message}
+                                    </p>
+                                )}
+                            </form>
+                        </div>
                     </div>
                 </div>
 
-                <div className="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <p className="text-gray-500 text-sm">
-                        © {new Date().getFullYear()} TravelQuest. All rights reserved.
+                {/* Bottom Bar */}
+                <div className="pt-10 md:pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 md:gap-8">
+                    <p className="text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-widest">
+                        © {new Date().getFullYear()} TravelQuest Luxury travel.
                     </p>
-                    <div className="flex items-center space-x-6">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4 opacity-50 gray" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6 opacity-50 gray" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-5 opacity-50 gray" />
+                    <div className="flex items-center space-x-6 md:space-x-10">
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white cursor-pointer transition-colors">Terms</span>
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white cursor-pointer transition-colors">Privacy</span>
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white cursor-pointer transition-colors">Cookies</span>
                     </div>
                 </div>
             </div>
@@ -93,3 +132,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

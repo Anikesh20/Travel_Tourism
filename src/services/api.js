@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost/Travel and tourism/api';
+const API_BASE_URL = 'http://localhost/Travel%20and%20tourism/api/index.php';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -11,27 +11,50 @@ const api = axios.create({
 
 export const dashboardService = {
     getStats: async () => {
-        const response = await api.get('/stats');
+        const response = await api.get('stats');
         return response.data;
     },
 };
 
 export const enquiryService = {
     getAll: async () => {
-        const response = await api.get('/enquiries');
+        const response = await api.get('enquiries');
         return response.data;
     },
     create: async (data) => {
-        const response = await api.post('/enquiries', data);
+        const response = await api.post('enquiries', data);
+        return response.data;
+    },
+    updateStatus: async (id, status) => {
+        const response = await api.put('enquiries', { id, status });
+        return response.data;
+    },
+    delete: async (id) => {
+        const response = await api.delete(`enquiries?id=${id}`);
         return response.data;
     },
 };
 
 export const packageService = {
     getAll: async () => {
-        const response = await api.get('/packages');
+        const response = await api.get('packages');
         return response.data;
     },
+};
+
+export const newsletterService = {
+    subscribe: async (email) => {
+        const response = await api.post('newsletter', { email });
+        return response.data;
+    },
+    getAll: async () => {
+        const response = await api.get('newsletter');
+        return response.data;
+    },
+    delete: async (id) => {
+        const response = await api.delete(`newsletter/${id}`);
+        return response.data;
+    }
 };
 
 export default api;

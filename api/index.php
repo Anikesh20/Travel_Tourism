@@ -1,58 +1,178 @@
 <?php
+// Disable error display to output, log them instead to avoid breaking JSON
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
+
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
-header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
-    exit();
+    exit;
 }
 
-require_once 'config/Database.php';
-require_once 'utils/Response.php';
+try {
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $uri_parts = explode('/', $uri);
 
-$database = new Database();
-$db = $database->getConnection();
+    // Filter out empty parts and re-index
+    $uri_parts = array_values(array_filter($uri_parts, function($value) {
+        return $value !== '';
+    }));
+    
+    // Logic: Find 'api' in the path.
+    // Example: /Travel%20and%20tourism/api/auth/login -> api found, next is auth
+    // Example: /Travel%20and%20tourism/api/index.php/auth/login -> api found, next is index.php (SKIP), next is auth
+    
+    $endpoint_index = -1;
+    foreach($uri_parts as $key => $part) {
+        if (strtolower(urldecode($part)) === 'api') {
+            $endpoint_index = $key;
+            break;
+        }
+    }
 
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-// Normalize URI
-$uri = str_replace(['/Travel%20and%20tourism/api/', '/Travel and tourism/api/'], '', $uri);
-$uri = trim($uri, '/');
-$segments = explode('/', $uri);
+    if ($endpoint_index === -1) {
+         throw new Exception("API segment not found in URL");
+    }
 
-$resource = $segments[0] ?? '';
-$action = $segments[1] ?? '';
+    // Check next part
+    $next_index = $endpoint_index + 1;
+    if (isset($uri_parts[$next_index]) && strtolower($uri_parts[$next_index]) === 'index.php') {
+        $next_index++;
+    }
 
-// Simple Router
-switch ($resource) {
-    case 'stats':
-        require_once 'controllers/DashboardController.php';
-        $controller = new DashboardController($db);
-        $controller->getStats();
-        break;
+    if (!isset($uri_parts[$next_index])) {
+        echo json_encode(["message" => "Welcome to Travel API"]);
+        exit;
+    }
+
+    $controllerName = strtolower(urldecode($uri_parts[$next_index]));
+    $methodName = isset($uri_parts[$next_index + 1]) ? strtolower(urldecode($uri_parts[$next_index + 1])) : null;
+
+    if ($controllerName === 'auth' && $methodName === 'login') {
+        $controllerPath = __DIR__ . '/controllers/AuthController.php';
+        if (!file_exists($controllerPath)) {
+            throw new Exception("Controller file not found: $controllerPath");
+        }
+        include_once $controllerPath;
+        if (!class_exists('AuthController')) {
+            throw new Exception("AuthController class not found");
+        }
+        $auth = new AuthController();
+        $auth->login();
+    } elseif ($controllerName === 'users') {
+        $controllerPath = __DIR__ . '/controllers/UserController.php';
+        if (!file_exists($controllerPath)) {
+            throw new Exception("Controller file not found: $controllerPath");
+        }
+        include_once $controllerPath;
+        if (!class_exists('UserController')) {
+            throw new Exception("UserController class not found");
+        }
+        $userController = new UserController();
+        $userController->getAll();
+    } elseif ($controllerName === 'settings') {
+        $controllerPath = __DIR__ . '/controllers/SettingsController.php';
+        if (!file_exists($controllerPath)) {
+            throw new Exception("Controller file not found: $controllerPath");
+        }
+        include_once $controllerPath;
+        if (!class_exists('SettingsController')) {
+            throw new Exception("SettingsController class not found");
+        }
+        $settingsController = new SettingsController();
+        $settingsController->handleRequest($_SERVER['REQUEST_METHOD']);
+    } elseif ($controllerName === 'auth' && $methodName === 'update-profile') {
+        // Handle update profile via AuthController
+         $controllerPath = __DIR__ . '/controllers/AuthController.php';
+         include_once $controllerPath;
+         $auth = new AuthController();
+         $auth->updateProfile();
+    } elseif ($controllerName === 'packages') {
+        $controllerPath = __DIR__ . '/controllers/PackageController.php';
+        if (!file_exists($controllerPath)) {
+            throw new Exception("Controller file not found: $controllerPath");
+        }
+        include_once $controllerPath;
+        if (!class_exists('PackageController')) {
+            throw new Exception("PackageController class not found");
+        }
+        $packageController = new PackageController();
+        $packageController->handleRequest($_SERVER['REQUEST_METHOD']);
+    } elseif ($controllerName === 'enquiries') {
+        $controllerPath = __DIR__ . '/controllers/EnquiryController.php';
+        if (!file_exists($controllerPath)) {
+            throw new Exception("Controller file not found: $controllerPath");
+        }
+        include_once $controllerPath;
+        if (!class_exists('EnquiryController')) {
+            throw new Exception("EnquiryController class not found");
+        }
+        $enquiryController = new EnquiryController();
+        $enquiryController->handleRequest($_SERVER['REQUEST_METHOD']);
+    } elseif ($controllerName === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(["message" => "No file uploaded or upload error"]);
+            return;
+        }
+
+        $file = $_FILES['image'];
+        $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!in_array($file['type'], $allowedTypes)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Invalid file type"]);
+            return;
+        }
+
+        $uploadDir = __DIR__ . '/uploads/packages/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = uniqid('package_', true) . '.' . $extension;
+        $filepath = $uploadDir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $filepath)) {
+            $url = '/Travel and tourism/api/uploads/packages/' . $filename;
+            echo json_encode(["message" => "Uploaded successfully", "url" => $url]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["message" => "Failed to move file"]);
+        }
+    } elseif ($controllerName === 'newsletter') {
+        $controllerPath = __DIR__ . '/controllers/NewsletterController.php';
+        include_once $controllerPath;
+        $newsletter = new NewsletterController();
         
-    case 'enquiries':
-        require_once 'controllers/EnquiryController.php';
-        $controller = new EnquiryController($db);
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $controller->getAll();
-        } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller->create();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            echo json_encode($newsletter->subscribe($data));
+        } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            echo json_encode($newsletter->getAll());
+        } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+            $id = isset($uri_parts[$next_index + 1]) ? $uri_parts[$next_index + 1] : null;
+            if ($id) {
+                echo json_encode(["success" => $newsletter->delete($id)]);
+            } else {
+                http_response_code(400);
+                echo json_encode(["message" => "ID required"]);
+            }
         }
-        break;
+    } else {
+        http_response_code(404);
+        echo json_encode(["message" => "Endpoint not found: $controllerName"]);
+    }
 
-    case 'packages':
-        require_once 'controllers/PackageController.php';
-        $controller = new PackageController($db);
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $controller->getAll();
-        }
-        break;
-
-    default:
-        Response::error("Endpoint not found: " . $resource, 404);
-        break;
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(["message" => "Server Error: " . $e->getMessage()]);
 }
 ?>

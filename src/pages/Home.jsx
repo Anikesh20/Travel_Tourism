@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import Hero from '../components/Hero';
-import Services from '../components/Services';
 import Destinations from '../components/Destinations';
 import WhyChooseUs from '../components/WhyChooseUs';
 import Testimonials from '../components/Testimonials';
@@ -35,7 +34,6 @@ const Home = () => {
     return (
         <main className="animate-fade-in">
             <Hero />
-            <Services />
             <Destinations />
             <WhyChooseUs />
             <Testimonials />
