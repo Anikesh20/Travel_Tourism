@@ -27,7 +27,7 @@ const Navbar = () => {
         };
     }, [isOpen]);
 
-    const isLightPage = !['/', '/services'].includes(location.pathname) &&
+    const isLightPage = !['/', '/services', '/about'].includes(location.pathname) &&
         !location.pathname.startsWith('/services/') &&
         !location.pathname.startsWith('/package/');
 
@@ -55,7 +55,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className={`fixed w-full transition-all duration-500 ${isOpen ? 'z-[999]' : 'z-50'} ${isScrolled && !isOpen ? 'glass-nav py-3' : 'bg-transparent py-6'}`}>
+        <nav className={`fixed w-full transition-all duration-500 ${isOpen ? 'z-[999]' : 'z-50'} ${(isScrolled || isLightPage) && !isOpen ? 'glass-nav py-3' : 'bg-transparent py-6'}`}>
             <div className="max-w-[1400px] mx-auto px-6 md:px-12">
                 <div className="flex justify-between items-center relative z-[1001]">
                     {/* Logo */}
@@ -64,7 +64,7 @@ const Navbar = () => {
                             <Globe className="text-brand-primary w-5 h-5" />
                         </div>
                         <span className={`text-2xl font-black font-display tracking-tight transition-colors duration-300 ${getLogoColor(isScrolled, isLightPage)}`}>
-                            Travel<span className="text-brand-secondary">Quest</span>
+                            Travel<span className={(isScrolled || isLightPage) ? "text-brand-primary" : "text-brand-secondary"}>Quest</span>
                         </span>
                     </Link>
 

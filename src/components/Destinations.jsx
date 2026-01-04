@@ -94,7 +94,7 @@ const Destinations = () => {
                                             <p className="text-[8px] md:text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-0.5 md:mb-1">Starting from</p>
                                             <p className="text-base md:text-2xl font-black text-brand-primary">
                                                 <span className="text-[10px] md:text-sm font-medium mr-1 tracking-normal">NPR</span>
-                                                {Number(item.price).toLocaleString()}
+                                                {Number(String(item.price).replace(/[^0-9.-]+/g, "")).toLocaleString()}
                                             </p>
                                         </div>
                                         <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-brand-accent flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all duration-500 group-hover:rotate-[360deg]">

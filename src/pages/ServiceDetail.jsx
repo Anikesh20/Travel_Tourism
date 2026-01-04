@@ -21,7 +21,7 @@ const ServiceDetail = () => {
     }
 
     return (
-        <div className="min-h-screen bg-white pt-20">
+        <div className="min-h-screen bg-white">
             {/* Header / Hero */}
             <section className="relative h-[40vh] md:h-[60vh] overflow-hidden bg-brand-primary">
                 <div className="absolute inset-0">

@@ -171,7 +171,7 @@ const PackageDetail = () => {
                                     <div className="flex items-baseline space-x-2">
                                         <span className="text-sm font-bold text-brand-primary">NPR</span>
                                         <span className="text-5xl md:text-7xl font-black text-brand-primary tracking-tighter">
-                                            {Number(pkg.price).toLocaleString()}
+                                            {Number(String(pkg.price).replace(/[^0-9.-]+/g, "")).toLocaleString()}
                                         </span>
                                         <span className="text-gray-400 font-bold uppercase text-[10px]">/ Per Person</span>
                                     </div>
