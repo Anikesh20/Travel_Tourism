@@ -5,6 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    allowedHosts: ["d130125d1a40.ngrok-free.app"]
+    allowedHosts: ["d130125d1a40.ngrok-free.app"],
+    proxy: {
+      '/api': {
+        target: 'http://localhost/Travel and tourism/api/index.php',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
   }
 })
