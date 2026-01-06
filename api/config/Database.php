@@ -27,7 +27,9 @@ class Database {
 
             // If not on localhost, assume we need SSL for cloud databases like TiDB
             if ($this->host !== 'localhost' && $this->host !== '127.0.0.1') {
-                // We use SSL but skip strict CA verification to avoid handshake errors on Vercel
+                // Force SSL mode by setting SSL_CA (empty string works on most systems)
+                // But don't verify the certificate to avoid CA path issues on Vercel
+                $options[PDO::MYSQL_ATTR_SSL_CA] = '';
                 $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
             }
 
