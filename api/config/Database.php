@@ -18,28 +18,26 @@ class Database {
     public function getConnection() {
         $this->conn = null;
         try {
+            $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4";
+            
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "set names utf8"
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8",
             ];
 
-            // Enable SSL if not on localhost
+            // If not on localhost, assume we need SSL for cloud databases like TiDB
             if ($this->host !== 'localhost' && $this->host !== '127.0.0.1') {
-                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+                // Note: Some environments might need a specific CA path, 
+                // but Vercel/Modern PHP usually finds it automatically.
             }
 
-            $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name,
-                $this->username,
-                $this->password,
-                $options
-            );
+            $this->conn = new PDO($dsn, $this->username, $this->password, $options);
         } catch(PDOException $exception) {
-            // echo "Connection error: " . $exception->getMessage(); // Bad for API
-            // error_log("Connection error: " . $exception->getMessage());
             $this->conn = null;
         }
         return $this->conn;
     }
+
 }
 ?>
