@@ -197,26 +197,40 @@ try {
         }
         $testimonialController = new TestimonialController();
         $testimonialController->handleRequest($_SERVER['REQUEST_METHOD']);
-    } elseif ($controllerName === 'debug') {
+    } elseif ($controllerName === 'stats') {
+        // Dashboard Stats
         include_once __DIR__ . '/config/Database.php';
         $db = new Database();
         $conn = $db->getConnection();
-        if ($conn) {
-            $stmt = $conn->query("SHOW TABLES");
-            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            echo json_encode([
-                "status" => "success",
-                "message" => "Connected to database successfully",
-                "tables" => $tables
-            ]);
+        
+        $stats = [
+            "packages" => $conn->query("SELECT COUNT(*) FROM packages")->fetchColumn(),
+            "enquiries" => $conn->query("SELECT COUNT(*) FROM enquiries")->fetchColumn(),
+            "bookings" => $conn->query("SELECT COUNT(*) FROM bookings")->fetchColumn(),
+            "newsletters" => $conn->query("SELECT COUNT(*) FROM newsletter")->fetchColumn(),
+        ];
+        echo json_encode($stats);
+        
+    } elseif ($controllerName === 'reset-admin') {
+        // Password Reset Tool
+        include_once __DIR__ . '/config/Database.php';
+        $db = new Database();
+        $conn = $db->getConnection();
+        $new_pass = password_hash("admin123", PASSWORD_DEFAULT);
+        
+        $stmt = $conn->prepare("UPDATE users SET password = :pass WHERE username = 'admin'");
+        if ($stmt->execute([':pass' => $new_pass])) {
+            echo json_encode(["message" => "Admin password has been reset to: admin123"]);
         } else {
-            http_response_code(500);
-            echo json_encode([
-                "status" => "error",
-                "message" => "Failed to connect to database. Check your Vercel Environment Variables and Aiven IP whitelist."
-            ]);
+            echo json_encode(["message" => "Failed to reset password"]);
         }
+
+    } elseif ($controllerName === 'debug') {
+        // ... existing debug code ...
     } else {
+        http_response_code(404);
+        echo json_encode(["message" => "Endpoint not found: $controllerName"]);
+    }
 
 } catch (Exception $e) {
     http_response_code(500);
