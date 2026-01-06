@@ -33,10 +33,13 @@ class Database {
 
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
         } catch(PDOException $exception) {
-            $this->conn = null;
+            http_response_code(500);
+            echo json_encode(["message" => "Connection error: " . $exception->getMessage()]);
+            exit;
         }
         return $this->conn;
     }
+
 
 }
 ?>
