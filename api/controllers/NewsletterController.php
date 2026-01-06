@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../config/NotificationService.php';
 
 class NewsletterController {
     private $db;
@@ -32,6 +33,16 @@ class NewsletterController {
         $stmt->bindParam(':email', $email);
 
         if ($stmt->execute()) {
+            // Send Notification to Admin
+            $notifier = new NotificationService();
+            $htmlContent = "
+                <div class='data-row'>
+                    <span class='label'>Subscriber Email</span>
+                    <span class='value'>" . htmlspecialchars($email) . "</span>
+                </div>";
+            
+            $notifier->sendAdminNotification("New Newsletter Subscriber", $htmlContent, 'newsletter');
+
             return ["success" => true, "message" => "Subscribed successfully"];
         }
 

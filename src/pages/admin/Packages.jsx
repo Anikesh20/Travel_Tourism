@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getPackages, createPackage, updatePackage, deletePackage } from '../../api/packages';
-import { Package, Plus, Edit, Trash2, X, Upload } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, X, Upload, Calendar, ShieldCheck, Info, Globe, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { uploadImage } from '../../api/upload';
+import Toast from '../../components/admin/Toast';
 
 const AdminPackages = () => {
     const [packages, setPackages] = useState([]);
@@ -11,7 +13,9 @@ const AdminPackages = () => {
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentPackage, setCurrentPackage] = useState(null); // null for create, object for edit
+    const [currentPackage, setCurrentPackage] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -22,7 +26,11 @@ const AdminPackages = () => {
         type: '',
         rating: '5.0',
         image_url: '',
-        badge: ''
+        badge: '',
+        itinerary: [], // Array of {day, title, description}
+        included: [], // Array of strings
+        excluded: [], // Array of strings
+        visa_requirements: ''
     });
 
     const loadPackages = async () => {
@@ -53,7 +61,11 @@ const AdminPackages = () => {
                 type: pkg.type,
                 rating: pkg.rating,
                 image_url: pkg.image_url || '',
-                badge: pkg.badge || ''
+                badge: pkg.badge || '',
+                itinerary: pkg.itinerary ? JSON.parse(pkg.itinerary) : [{ day: 1, title: '', description: '' }],
+                included: pkg.included ? JSON.parse(pkg.included) : [],
+                excluded: pkg.excluded ? JSON.parse(pkg.excluded) : [],
+                visa_requirements: pkg.visa_requirements || ''
             });
         } else {
             setCurrentPackage(null);
@@ -65,7 +77,11 @@ const AdminPackages = () => {
                 type: '',
                 rating: '5.0',
                 image_url: '',
-                badge: ''
+                badge: '',
+                itinerary: [{ day: 1, title: '', description: '' }],
+                included: [],
+                excluded: [],
+                visa_requirements: ''
             });
         }
         setIsModalOpen(true);
@@ -96,28 +112,83 @@ const AdminPackages = () => {
         }
     };
 
+    const showNotification = (message, type = 'success') => {
+        setNotification({ show: true, message, type });
+    };
+
+    const handleCloseNotification = () => {
+        setNotification(prev => ({ ...prev, show: false }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSaving(true);
         try {
+            const submissionData = {
+                ...formData,
+                itinerary: JSON.stringify(formData.itinerary),
+                included: JSON.stringify(formData.included),
+                excluded: JSON.stringify(formData.excluded)
+            };
+
             if (currentPackage) {
-                await updatePackage(formData);
+                await updatePackage(submissionData);
+                showNotification("Package updated successfully!", "success");
             } else {
-                await createPackage(formData);
+                await createPackage(submissionData);
+                showNotification("New package created successfully!", "success");
             }
             handleCloseModal();
             loadPackages();
         } catch (err) {
-            alert("Error saving package: " + err.message);
+            showNotification(err.message || "Something went wrong", "error");
+        } finally {
+            setSaving(false);
         }
+    };
+
+    // Form Helper Functions
+    const addItineraryDay = () => {
+        setFormData(prev => ({
+            ...prev,
+            itinerary: [...prev.itinerary, { day: prev.itinerary.length + 1, title: '', description: '' }]
+        }));
+    };
+
+    const removeItineraryDay = (index) => {
+        const newItin = formData.itinerary.filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, itinerary: newItin }));
+    };
+
+    const handleItineraryChange = (index, field, value) => {
+        const newItin = [...formData.itinerary];
+        newItin[index][field] = value;
+        setFormData(prev => ({ ...prev, itinerary: newItin }));
+    };
+
+    const addListItem = (field) => {
+        setFormData(prev => ({ ...prev, [field]: [...prev[field], ''] }));
+    };
+
+    const removeListItem = (field, index) => {
+        const newList = formData[field].filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, [field]: newList }));
+    };
+
+    const handleListChange = (field, index, value) => {
+        const newList = [...formData[field]];
+        newList[index] = value;
+        setFormData(prev => ({ ...prev, [field]: newList }));
     };
 
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this package?")) {
             try {
                 await deletePackage(id);
+                showNotification("Package deleted successfully", "success");
                 loadPackages();
             } catch (err) {
-                alert("Error deleting: " + err.message);
+                showNotification(err.message || "Failed to delete package", "error");
             }
         }
     };
@@ -125,7 +196,13 @@ const AdminPackages = () => {
     if (loading && packages.length === 0) return <div className="p-6">Loading...</div>;
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white p-6 rounded-lg shadow-sm relative">
+            <Toast
+                show={notification.show}
+                message={notification.message}
+                type={notification.type}
+                onClose={handleCloseNotification}
+            />
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold flex items-center">
                     <Package className="mr-2" /> Tour Packages
@@ -147,7 +224,7 @@ const AdminPackages = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Image</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Info</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package Details</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
@@ -165,14 +242,33 @@ const AdminPackages = () => {
                                     {pkg.price}
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-500">
-                                    <div>{pkg.duration}</div>
-                                    <div>{pkg.type} • ⭐ {pkg.rating}</div>
+                                    <div className="font-bold text-slate-900">{pkg.duration}</div>
+                                    <div className="flex gap-2 mt-1">
+                                        <span title="Itinerary" className={`p-1 rounded ${pkg.itinerary && pkg.itinerary !== '[]' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-300'}`}>
+                                            <Calendar size={12} />
+                                        </span>
+                                        <span title="Inclusions" className={`p-1 rounded ${pkg.included && pkg.included !== '[]' ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-300'}`}>
+                                            <ShieldCheck size={12} />
+                                        </span>
+                                        <span title="Visa Info" className={`p-1 rounded ${pkg.visa_requirements ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-300'}`}>
+                                            <Info size={12} />
+                                        </span>
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                    <button onClick={() => handleOpenModal(pkg)} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                                    <a
+                                        href={`/package/${pkg.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-900 mr-4"
+                                        title="View Live Page"
+                                    >
+                                        <Globe size={18} />
+                                    </a>
+                                    <button onClick={() => handleOpenModal(pkg)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Edit Package">
                                         <Edit size={18} />
                                     </button>
-                                    <button onClick={() => handleDelete(pkg.id)} className="text-red-600 hover:text-red-900">
+                                    <button onClick={() => handleDelete(pkg.id)} className="text-red-600 hover:text-red-900" title="Delete Package">
                                         <Trash2 size={18} />
                                     </button>
                                 </td>
@@ -192,7 +288,7 @@ const AdminPackages = () => {
                     ></div>
 
                     {/* Modal Content */}
-                    <div className="relative bg-white rounded-lg shadow-2xl max-w-lg w-full z-10 flex flex-col max-h-[90vh]">
+                    <div className="relative bg-white rounded-lg shadow-2xl max-w-4xl w-full z-10 flex flex-col max-h-[90vh]">
                         <style>{`
                             .modal-scrollbar::-webkit-scrollbar {
                                 width: 6px;
@@ -254,6 +350,87 @@ const AdminPackages = () => {
                                         <input name="badge" value={formData.badge} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. LUXURY" />
                                     </div>
                                     <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Visa & Document Requirements</label>
+                                        <textarea name="visa_requirements" value={formData.visa_requirements} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none resize-none" rows="3" placeholder="Passport scan, visa fees, etc..."></textarea>
+                                    </div>
+
+                                    {/* Itinerary Section */}
+                                    <div className="col-span-2 mt-4">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-sm font-bold text-gray-800">Itinerary (Day by Day Plan)</label>
+                                            <button type="button" onClick={addItineraryDay} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 font-bold">
+                                                + Add Day
+                                            </button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {formData.itinerary.map((item, idx) => (
+                                                <div key={idx} className="p-3 bg-gray-50 rounded border border-gray-100 relative group/day">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded">Day {idx + 1}</span>
+                                                        <input
+                                                            value={item.title}
+                                                            onChange={(e) => handleItineraryChange(idx, 'title', e.target.value)}
+                                                            className="flex-1 text-sm font-bold bg-transparent border-b border-gray-200 outline-none focus:border-blue-500"
+                                                            placeholder="Title: Arrival at..."
+                                                        />
+                                                        <button type="button" onClick={() => removeItineraryDay(idx)} className="text-gray-300 hover:text-red-500 transition-colors">
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                    <textarea
+                                                        value={item.description}
+                                                        onChange={(e) => handleItineraryChange(idx, 'description', e.target.value)}
+                                                        className="w-full text-xs p-2 bg-white border border-gray-100 rounded focus:border-blue-300 outline-none resize-none"
+                                                        rows="2"
+                                                        placeholder="What happens on this day?"
+                                                    ></textarea>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Included / Excluded Section */}
+                                    <div className="col-span-2 grid grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-sm font-bold text-emerald-700">What's Included</label>
+                                                <button type="button" onClick={() => addListItem('included')} className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100">+</button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {formData.included.map((item, idx) => (
+                                                    <div key={idx} className="flex gap-1 items-center">
+                                                        <input
+                                                            value={item}
+                                                            onChange={(e) => handleListChange('included', idx, e.target.value)}
+                                                            className="flex-1 text-xs p-1.5 border border-gray-200 rounded outline-none"
+                                                            placeholder="Included item..."
+                                                        />
+                                                        <button type="button" onClick={() => removeListItem('included', idx)} className="text-gray-300 hover:text-red-500"><X size={12} /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-sm font-bold text-rose-700">What's Excluded</label>
+                                                <button type="button" onClick={() => addListItem('excluded')} className="text-xs bg-rose-50 text-rose-600 px-2 py-1 rounded border border-rose-100">+</button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {formData.excluded.map((item, idx) => (
+                                                    <div key={idx} className="flex gap-1 items-center">
+                                                        <input
+                                                            value={item}
+                                                            onChange={(e) => handleListChange('excluded', idx, e.target.value)}
+                                                            className="flex-1 text-xs p-1.5 border border-gray-200 rounded outline-none"
+                                                            placeholder="Excluded item..."
+                                                        />
+                                                        <button type="button" onClick={() => removeListItem('excluded', idx)} className="text-gray-300 hover:text-red-500"><X size={12} /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Package Image</label>
 
                                         {/* File Upload Button */}
@@ -305,8 +482,13 @@ const AdminPackages = () => {
 
                             {/* Footer - Fixed */}
                             <div className="bg-gray-50 px-6 py-4 flex flex-row-reverse rounded-b-lg border-t">
-                                <button type="submit" className="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-6 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:text-sm transition-colors">
-                                    {currentPackage ? 'Update' : 'Create'}
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="w-full sm:w-auto inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-6 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:text-sm transition-colors disabled:opacity-50"
+                                >
+                                    {saving && <Loader2 size={16} className="animate-spin mr-2" />}
+                                    {currentPackage ? (saving ? 'Updating...' : 'Update') : (saving ? 'Creating...' : 'Create')}
                                 </button>
                                 <button type="button" onClick={handleCloseModal} className="mt-3 w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-6 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:text-sm transition-colors">
                                     Cancel

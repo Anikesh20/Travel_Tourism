@@ -64,6 +64,11 @@ try {
         }
         $auth = new AuthController();
         $auth->login();
+    } elseif ($controllerName === 'auth' && $methodName === 'verify-otp') {
+        $controllerPath = __DIR__ . '/controllers/AuthController.php';
+        include_once $controllerPath;
+        $auth = new AuthController();
+        $auth->verifyOTP();
     } elseif ($controllerName === 'users') {
         $controllerPath = __DIR__ . '/controllers/UserController.php';
         if (!file_exists($controllerPath)) {
@@ -166,6 +171,28 @@ try {
                 echo json_encode(["message" => "ID required"]);
             }
         }
+    } elseif ($controllerName === 'bookings') {
+        $controllerPath = __DIR__ . '/controllers/BookingController.php';
+        if (!file_exists($controllerPath)) {
+            throw new Exception("Controller file not found: $controllerPath");
+        }
+        include_once $controllerPath;
+        if (!class_exists('BookingController')) {
+            throw new Exception("BookingController class not found");
+        }
+        $bookingController = new BookingController();
+        $bookingController->handleRequest($_SERVER['REQUEST_METHOD']);
+    } elseif ($controllerName === 'testimonials') {
+        $controllerPath = __DIR__ . '/controllers/TestimonialController.php';
+        if (!file_exists($controllerPath)) {
+            throw new Exception("Controller file not found: $controllerPath");
+        }
+        include_once $controllerPath;
+        if (!class_exists('TestimonialController')) {
+            throw new Exception("TestimonialController class not found");
+        }
+        $testimonialController = new TestimonialController();
+        $testimonialController->handleRequest($_SERVER['REQUEST_METHOD']);
     } else {
         http_response_code(404);
         echo json_encode(["message" => "Endpoint not found: $controllerName"]);

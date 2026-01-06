@@ -1,205 +1,424 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { MapPin, Calendar, Star, CheckCircle2, ArrowLeft, ArrowUpRight, Zap, Users, Clock, Shield } from 'lucide-react';
-import { getPackages } from '../api/packages';
-import EnquiryForm from '../components/EnquiryForm';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Calendar,
+    Clock,
+    MapPin,
+    Users,
+    Star,
+    ShieldCheck,
+    ArrowLeft,
+    CheckCircle2,
+    Plane,
+    Hotel,
+    Camera,
+    Info,
+    X
+} from 'lucide-react';
+import apiClient from '../api/client';
+import { createBooking } from '../api/bookings';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 const PackageDetail = () => {
     const { id } = useParams();
-    const [pkg, setPkg] = useState(null);
+    const navigate = useNavigate();
+    const [packageData, setPackageData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [bookingLoading, setBookingLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState('overview');
+
+    // Form State
+    const [formData, setFormData] = useState({
+        user_name: '',
+        user_email: '',
+        user_phone: '',
+        booking_date: '',
+        travelers: 1
+    });
 
     useEffect(() => {
         const fetchPackage = async () => {
             try {
-                const data = await getPackages();
-                if (Array.isArray(data)) {
-                    const found = data.find(p => p.id == id);
-                    setPkg(found);
-                }
+                const response = await apiClient.get(`/packages?id=${id}`);
+                setPackageData(response.data);
             } catch (err) {
-                console.error("Failed to load package", err);
+                setError("Package not found");
+                console.error(err);
             } finally {
                 setLoading(false);
             }
         };
         fetchPackage();
+        window.scrollTo(0, 0);
     }, [id]);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-white">
-                <div className="w-12 h-12 border-4 border-brand-primary border-t-brand-secondary rounded-full animate-spin"></div>
-            </div>
-        );
-    }
+    const handleBooking = async (e) => {
+        e.preventDefault();
+        setBookingLoading(true);
+        try {
+            const bookingData = {
+                ...formData,
+                package_id: id,
+                total_price: packageData.price
+            };
+            await createBooking(bookingData);
+            setShowSuccess(true);
+            setFormData({
+                user_name: '',
+                user_email: '',
+                user_phone: '',
+                booking_date: '',
+                travelers: 1
+            });
+            setTimeout(() => setShowSuccess(false), 5000);
+        } catch (err) {
+            alert(err.message || "Failed to create booking");
+        } finally {
+            setBookingLoading(false);
+        }
+    };
 
-    if (!pkg) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-brand-primary text-white">
-                <div className="text-center">
-                    <h2 className="text-4xl font-black mb-4 tracking-tighter">Package Not Found</h2>
-                    <Link to="/#destinations" className="text-brand-secondary hover:underline font-black uppercase text-xs tracking-widest">Back to Destinations</Link>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"
+            />
+        </div>
+    );
+
+    if (error || !packageData) return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
+            <Info size={64} className="text-slate-300 mb-4" />
+            <h2 className="text-3xl font-black text-slate-900 mb-2">Oops! Package not found</h2>
+            <p className="text-slate-500 font-bold mb-8">The package you're looking for might have been moved or deleted.</p>
+            <button
+                onClick={() => navigate('/destinations')}
+                className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold flex items-center"
+            >
+                <ArrowLeft size={18} className="mr-2" />
+                Explore Other Destinations
+            </button>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-white">
-            {/* Immersive Header */}
-            <section className="relative h-[60vh] md:h-[80vh] overflow-hidden">
-                <div className="absolute inset-0">
-                    <img src={pkg.image_url} alt={pkg.destination} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/80"></div>
-                </div>
+        <div className="min-h-screen bg-slate-50">
+            <Navbar />
 
-                <div className="section-container relative z-10 h-full flex flex-col justify-end pb-12 md:pb-24">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                    >
-                        <Link to="/" className="inline-flex items-center space-x-2 text-white/80 font-black uppercase tracking-[0.2em] text-[10px] mb-8 group hover:text-brand-secondary transition-colors">
-                            <ArrowLeft size={16} className="group-hover:-translate-x-2 transition-transform" />
-                            <span>Explorer Collection</span>
-                        </Link>
+            {/* Hero Section */}
+            <div className="relative h-[60vh] md:h-[70vh] w-full overflow-hidden">
+                <img
+                    src={packageData.image_url}
+                    className="w-full h-full object-cover"
+                    alt={packageData.destination}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
 
-                        <div className="flex flex-wrap items-center gap-3 mb-6">
-                            <span className="glass-card px-4 py-2 rounded-full text-[10px] font-black text-white uppercase tracking-widest">
-                                {pkg.badge || 'Premium Collection'}
+                <div className="absolute bottom-0 left-0 w-full p-8 md:p-16">
+                    <div className="max-w-7xl mx-auto">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-wrap items-center gap-3 mb-4"
+                        >
+                            <span className="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase">
+                                {packageData.type}
                             </span>
-                            <div className="flex items-center space-x-1.5 bg-brand-secondary px-4 py-2 rounded-full text-brand-primary">
-                                <Star size={12} className="fill-brand-primary" />
-                                <span className="text-[10px] font-black">{pkg.rating || '4.9'} Rating</span>
+                            {packageData.badge && (
+                                <span className="bg-white/20 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border border-white/20">
+                                    {packageData.badge}
+                                </span>
+                            )}
+                            <div className="flex items-center text-yellow-400 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                                <Star size={14} fill="currentColor" className="mr-1" />
+                                <span className="text-xs font-black">{packageData.rating}</span>
                             </div>
-                        </div>
+                        </motion.div>
 
-                        <h1 className="text-5xl md:text-8xl lg:text-9xl font-black text-white tracking-tighter leading-[0.8] mb-6 md:mb-10">
-                            {pkg.destination}
-                        </h1>
+                        <motion.h1
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="text-4xl md:text-7xl font-black text-white mb-4 tracking-tight"
+                        >
+                            {packageData.destination}
+                        </motion.h1>
 
-                        <div className="flex flex-wrap items-center gap-8 text-white/80">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                                    <Clock size={18} />
-                                </div>
-                                <div>
-                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-60">Duration</p>
-                                    <p className="font-bold text-sm">{pkg.duration}</p>
-                                </div>
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="flex flex-wrap items-center gap-6 text-white/80 font-bold"
+                        >
+                            <div className="flex items-center">
+                                <Clock size={20} className="mr-2 text-blue-400" />
+                                {packageData.duration}
                             </div>
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                                    <Users size={18} />
-                                </div>
-                                <div>
-                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-60">Group Size</p>
-                                    <p className="font-bold text-sm">Max 12 People</p>
-                                </div>
+                            <div className="flex items-center">
+                                <MapPin size={20} className="mr-2 text-rose-400" />
+                                Premium Route
                             </div>
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                                    <Shield size={18} />
-                                </div>
-                                <div>
-                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-60">Safety</p>
-                                    <p className="font-bold text-sm">Verified Elite</p>
-                                </div>
+                            <div className="flex items-center">
+                                <ShieldCheck size={20} className="mr-2 text-emerald-400" />
+                                Safe & Verified
                             </div>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Content Section */}
-            <section className="py-20 md:py-32 bg-[#fcfcfc]">
-                <div className="section-container">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 md:gap-24 items-start">
-                        {/* Detail Content */}
-                        <div className="lg:col-span-7 space-y-16">
-                            <div className="space-y-8">
-                                <h2 className="text-3xl md:text-5xl font-black text-brand-primary tracking-tighter">Unveil the extraordinary <br /> in {pkg.destination}.</h2>
-                                <p className="text-gray-600 text-lg md:text-xl leading-relaxed font-medium">
-                                    Experience the pinnacle of luxury travel with our curated {pkg.destination} expedition. This isn't just a tour; it's a meticulously engineered saga of discovery, comfort, and elite access.
-                                </p>
-                                <p className="text-gray-500 text-base md:text-lg leading-relaxed">
-                                    From the moment you arrive, you will be immersed in an environment of total care. Our expert artisans have selected the finest accommodations, private transportation, and local guides who possess profound knowledge of the region's heritage and secrets.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {[
-                                    'Privileged Heritage Site Access',
-                                    'Premium 5-Star Accommodations',
-                                    'Private Luxury Transfers',
-                                    'Curated Local Culinary Tours',
-                                    'Expert Multilingual Guides',
-                                    'Comprehensive Trip Insurance'
-                                ].map((item, i) => (
-                                    <div key={i} className="flex items-center space-x-4 p-6 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                        <div className="w-8 h-8 rounded-full bg-brand-secondary/20 flex items-center justify-center group-hover:bg-brand-secondary transition-colors">
-                                            <CheckCircle2 size={16} className="text-brand-primary" />
-                                        </div>
-                                        <span className="font-bold text-brand-primary text-sm tracking-tight">{item}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="relative rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl aspect-video group">
-                                <img src={pkg.image_url} alt="Gallery" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/60 via-transparent to-transparent"></div>
-                                <div className="absolute bottom-10 left-10 p-4 md:p-10 glass-card rounded-[2.5rem] border border-white/20">
-                                    <div className="flex items-center space-x-6">
-                                        <div className="w-16 h-16 bg-brand-secondary rounded-3xl flex items-center justify-center text-brand-primary shadow-xl">
-                                            <Zap size={32} />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-2xl font-black text-white tracking-tight">Rapid Securement</h4>
-                                            <p className="text-white/60 text-xs font-black uppercase tracking-widest">Limited Availability for 2026</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Booking Sidebar */}
-                        <div className="lg:col-span-5 lg:sticky lg:top-32">
-                            <div className="bg-white p-8 md:p-12 rounded-[3rem] md:rounded-[4rem] border border-gray-100 shadow-2xl space-y-10">
-                                <div>
-                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-4">Investment</p>
-                                    <div className="flex items-baseline space-x-2">
-                                        <span className="text-sm font-bold text-brand-primary">NPR</span>
-                                        <span className="text-5xl md:text-7xl font-black text-brand-primary tracking-tighter">
-                                            {Number(String(pkg.price).replace(/[^0-9.-]+/g, "")).toLocaleString()}
-                                        </span>
-                                        <span className="text-gray-400 font-bold uppercase text-[10px]">/ Per Person</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="p-4 bg-brand-secondary/10 rounded-2xl border border-brand-secondary/20 flex items-center space-x-4">
-                                        <Calendar size={20} className="text-brand-primary" />
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary/60">Available Slots</p>
-                                            <p className="font-bold text-brand-primary text-sm">March - October 2026</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-8">
-                                        <h3 className="text-2xl font-black text-brand-primary mb-3">Book Your Quest</h3>
-                                        <p className="text-gray-500 font-medium text-sm leading-relaxed">
-                                            Ready to transform your vision into reality? Send an enquiry and our heritage consultants will personalize your {pkg.destination} journey.
-                                        </p>
-                                    </div>
-
-                                    <EnquiryForm inline={true} />
-                                </div>
-                            </div>
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
-            </section>
+            </div>
+
+            {/* Content Section */}
+            <div className="max-w-7xl mx-auto px-6 py-12 md:py-20">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+
+                    {/* Left Column: Details */}
+                    <div className="lg:col-span-2 space-y-12">
+                        {/* Tabs Navigation */}
+                        <div className="flex border-b border-slate-200 overflow-x-auto no-scrollbar mb-8">
+                            {[
+                                { id: 'overview', label: 'Overview' },
+                                { id: 'itinerary', label: 'Itinerary' },
+                                { id: 'included', label: 'Included & Excluded' },
+                                { id: 'visa', label: 'Visa & Documents' }
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-8 py-4 text-sm font-black uppercase tracking-widest whitespace-nowrap transition-all relative ${activeTab === tab.id ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
+                                        }`}
+                                >
+                                    {tab.label}
+                                    {activeTab === tab.id && (
+                                        <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Tab Content */}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeTab}
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                {activeTab === 'overview' && (
+                                    <section className="animate-in fade-in duration-500">
+                                        <h2 className="text-3xl font-black text-slate-900 mb-6 tracking-tight flex items-center">
+                                            <span className="w-1.5 h-8 bg-blue-600 rounded-full mr-4" />
+                                            Trip Overview
+                                        </h2>
+                                        <p className="text-slate-600 text-lg leading-relaxed font-semibold whitespace-pre-line">
+                                            {packageData.description || `Experience the breathtaking beauty of ${packageData.destination}. This tour is designed for travelers who seek both comfort and excitement.`}
+                                        </p>
+                                    </section>
+                                )}
+
+                                {activeTab === 'itinerary' && (
+                                    <section>
+                                        <h2 className="text-3xl font-black text-slate-900 mb-8 tracking-tight flex items-center">
+                                            <span className="w-1.5 h-8 bg-indigo-600 rounded-full mr-4" />
+                                            Day by Day Plan
+                                        </h2>
+                                        <div className="space-y-8">
+                                            {packageData.itinerary ? JSON.parse(packageData.itinerary).map((item, idx) => (
+                                                <div key={idx} className="flex gap-6 group">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-sm shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform">
+                                                            D{item.day}
+                                                        </div>
+                                                        <div className="w-0.5 h-full bg-slate-100 my-2" />
+                                                    </div>
+                                                    <div className="flex-1 pb-8">
+                                                        <h3 className="text-xl font-black text-slate-900 mb-2">{item.title}</h3>
+                                                        <p className="text-slate-500 font-bold leading-relaxed">{item.description}</p>
+                                                    </div>
+                                                </div>
+                                            )) : (
+                                                <p className="text-slate-400 font-bold italic">Itinerary details coming soon...</p>
+                                            )}
+                                        </div>
+                                    </section>
+                                )}
+
+                                {activeTab === 'included' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="bg-emerald-50/50 p-8 rounded-[2.5rem] border border-emerald-100">
+                                            <h3 className="text-xl font-black text-emerald-900 mb-6 flex items-center">
+                                                <CheckCircle2 className="mr-3 text-emerald-600" />
+                                                What's Included
+                                            </h3>
+                                            <ul className="space-y-4">
+                                                {packageData.included ? JSON.parse(packageData.included).map((item, idx) => (
+                                                    <li key={idx} className="flex items-start text-emerald-800 font-bold text-sm">
+                                                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-1.5 mr-3 flex-shrink-0" />
+                                                        {item}
+                                                    </li>
+                                                )) : (
+                                                    <li className="text-emerald-400/60 font-medium italic">Standard inclusions apply...</li>
+                                                )}
+                                            </ul>
+                                        </div>
+                                        <div className="bg-rose-50/50 p-8 rounded-[2.5rem] border border-rose-100">
+                                            <h3 className="text-xl font-black text-rose-900 mb-6 flex items-center">
+                                                <X className="mr-3 text-rose-600" />
+                                                What's Excluded
+                                            </h3>
+                                            <ul className="space-y-4">
+                                                {packageData.excluded ? JSON.parse(packageData.excluded).map((item, idx) => (
+                                                    <li key={idx} className="flex items-start text-rose-800 font-bold text-sm">
+                                                        <div className="w-1.5 h-1.5 bg-rose-400 rounded-full mt-1.5 mr-3 flex-shrink-0" />
+                                                        {item}
+                                                    </li>
+                                                )) : (
+                                                    <li className="text-rose-400/60 font-medium italic">No specific exclusions listed...</li>
+                                                )}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'visa' && (
+                                    <section>
+                                        <h2 className="text-3xl font-black text-slate-900 mb-6 tracking-tight flex items-center">
+                                            <span className="w-1.5 h-8 bg-amber-500 rounded-full mr-4" />
+                                            Visa & Documents
+                                        </h2>
+                                        <div className="bg-amber-50 rounded-[2.5rem] p-8 border border-amber-100">
+                                            <p className="text-amber-900/80 text-lg leading-relaxed font-semibold whitespace-pre-line">
+                                                {packageData.visa_requirements || "Please contact our office for the latest visa and document requirements for this destination. Generally, a passport valid for at least 6 months is required."}
+                                            </p>
+                                        </div>
+                                    </section>
+                                )}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Right Column: Booking Form */}
+                    <div className="relative">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="sticky top-28 bg-white p-8 rounded-[3rem] shadow-2xl shadow-slate-200 border border-slate-100"
+                        >
+                            <div className="mb-8">
+                                <p className="text-slate-500 font-bold mb-1">Starting from</p>
+                                <h3 className="text-4xl font-black text-slate-900 tracking-tight">
+                                    {packageData.price}
+                                    <span className="text-sm text-slate-400 font-bold ml-2 italic">/ person</span>
+                                </h3>
+                            </div>
+
+                            <form onSubmit={handleBooking} className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Full Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-blue-600/5 transition-all"
+                                        placeholder="John Doe"
+                                        value={formData.user_name}
+                                        onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Email Address</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-blue-600/5 transition-all"
+                                        placeholder="john@example.com"
+                                        value={formData.user_email}
+                                        onChange={(e) => setFormData({ ...formData, user_email: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-blue-600/5 transition-all"
+                                        placeholder="+977 98XXXXXXXX"
+                                        value={formData.user_phone}
+                                        onChange={(e) => setFormData({ ...formData, user_phone: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Travel Date</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            className="w-full bg-slate-50 border-none rounded-2xl px-4 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-blue-600/5 transition-all"
+                                            value={formData.booking_date}
+                                            onChange={(e) => setFormData({ ...formData, booking_date: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Travelers</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            required
+                                            className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-blue-600/5 transition-all"
+                                            value={formData.travelers}
+                                            onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={bookingLoading}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-200 transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-70"
+                                >
+                                    {bookingLoading ? 'Processing...' : 'Reserve Securely'}
+                                </button>
+
+                                <div className="flex items-center justify-center text-slate-400 font-bold text-xs pt-4">
+                                    <ShieldCheck size={16} className="mr-2 text-emerald-500" />
+                                    No immediate payment required
+                                </div>
+                            </form>
+
+                            {/* Success Notification */}
+                            <AnimatePresence>
+                                {showSuccess && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        className="absolute inset-0 bg-white/95 backdrop-blur-md rounded-[3rem] p-8 flex flex-col items-center justify-center text-center z-10"
+                                    >
+                                        <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mb-6">
+                                            <CheckCircle2 size={48} />
+                                        </div>
+                                        <h4 className="text-2xl font-black text-slate-900 mb-2">Booking Requested!</h4>
+                                        <p className="text-slate-500 font-bold">We will contact you within 24 hours to confirm your trip details.</p>
+                                        <button
+                                            onClick={() => setShowSuccess(false)}
+                                            className="mt-8 text-blue-600 font-black tracking-widest uppercase text-xs hover:underline"
+                                        >
+                                            Dismiss
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    </div>
+                </div>
+            </div>
+
+            <Footer />
         </div>
     );
 };

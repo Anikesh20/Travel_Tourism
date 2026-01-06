@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { enquiryService } from '../../services/api';
 import { Mail, Phone, Calendar, MessageSquare, Trash2, CheckCircle, Clock2, MoreHorizontal, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Toast from '../../components/admin/Toast';
 
 const AdminEnquiries = () => {
     const [enquiries, setEnquiries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
     const loadEnquiries = async () => {
         setLoading(true);
@@ -22,6 +24,14 @@ const AdminEnquiries = () => {
         }
     };
 
+    const showNotification = (message, type = 'success') => {
+        setNotification({ show: true, message, type });
+    };
+
+    const handleCloseNotification = () => {
+        setNotification(prev => ({ ...prev, show: false }));
+    };
+
     useEffect(() => {
         loadEnquiries();
     }, []);
@@ -29,9 +39,10 @@ const AdminEnquiries = () => {
     const handleStatusUpdate = async (id, newStatus) => {
         try {
             await enquiryService.updateStatus(id, newStatus);
+            showNotification(`Enquiry marked as ${newStatus}`, "success");
             loadEnquiries();
         } catch (err) {
-            console.error('Failed to update status:', err);
+            showNotification(err.message || "Failed to update status", "error");
         }
     };
 
@@ -39,9 +50,10 @@ const AdminEnquiries = () => {
         if (!window.confirm('Are you sure you want to delete this enquiry?')) return;
         try {
             await enquiryService.delete(id);
+            showNotification("Enquiry deleted successfully", "success");
             loadEnquiries();
         } catch (err) {
-            console.error('Failed to delete enquiry:', err);
+            showNotification(err.message || "Failed to delete enquiry", "error");
         }
     };
 
@@ -60,7 +72,13 @@ const AdminEnquiries = () => {
     };
 
     return (
-        <div className="p-8">
+        <div className="p-8 relative">
+            <Toast
+                show={notification.show}
+                message={notification.message}
+                type={notification.type}
+                onClose={handleCloseNotification}
+            />
             <div className="flex justify-between items-end mb-10">
                 <div>
                     <h1 className="text-4xl font-black text-brand-primary tracking-tighter mb-2">Guest Enquiries</h1>
@@ -73,8 +91,8 @@ const AdminEnquiries = () => {
                             key={type}
                             onClick={() => setFilter(type)}
                             className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filter === type
-                                    ? 'bg-white text-brand-primary shadow-sm'
-                                    : 'text-gray-500 hover:text-brand-primary'
+                                ? 'bg-white text-brand-primary shadow-sm'
+                                : 'text-gray-500 hover:text-brand-primary'
                                 }`}
                         >
                             {type}

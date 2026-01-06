@@ -59,7 +59,7 @@ const Hero = () => {
 
             {/* Vertical Pagination Indicator (Left) */}
             <div className="absolute left-8 top-1/2 -translate-y-1/2 z-20 hidden lg:flex flex-col items-center space-y-6">
-                <div className="text-xs font-bold tracking-widest vertical-text transform -rotate-180 mb-4 opacity-70">
+                <div className="text-xs font-bold tracking-widest mb-4 opacity-70">
                     0{currentIndex + 1} / 0{packages.length}
                 </div>
                 <div className="w-[1px] h-32 bg-white/20 relative">

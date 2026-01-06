@@ -19,7 +19,11 @@ class PackageController {
 
         switch ($method) {
             case 'GET':
-                $this->getAll();
+                if (isset($_GET['id'])) {
+                    $this->getOne($_GET['id']);
+                } else {
+                    $this->getAll();
+                }
                 break;
             case 'POST':
                 $this->create();
@@ -66,7 +70,8 @@ class PackageController {
         }
 
         try {
-            $query = "INSERT INTO packages (destination, description, price, duration, type, rating, image_url, badge) VALUES (:destination, :description, :price, :duration, :type, :rating, :image_url, :badge)";
+            $query = "INSERT INTO packages (destination, description, price, duration, type, rating, image_url, badge, itinerary, included, excluded, visa_requirements) 
+                      VALUES (:destination, :description, :price, :duration, :type, :rating, :image_url, :badge, :itinerary, :included, :excluded, :visa_requirements)";
             $stmt = $this->conn->prepare($query);
 
             $stmt->bindValue(":destination", $data->destination);
@@ -77,6 +82,10 @@ class PackageController {
             $stmt->bindValue(":rating", isset($data->rating) ? $data->rating : '5.0');
             $stmt->bindValue(":image_url", isset($data->image_url) ? $data->image_url : '');
             $stmt->bindValue(":badge", isset($data->badge) ? $data->badge : '');
+            $stmt->bindValue(":itinerary", isset($data->itinerary) ? $data->itinerary : '');
+            $stmt->bindValue(":included", isset($data->included) ? $data->included : '');
+            $stmt->bindValue(":excluded", isset($data->excluded) ? $data->excluded : '');
+            $stmt->bindValue(":visa_requirements", isset($data->visa_requirements) ? $data->visa_requirements : '');
 
             if ($stmt->execute()) {
                 http_response_code(201);
@@ -101,7 +110,20 @@ class PackageController {
         }
 
         try {
-            $query = "UPDATE packages SET destination=:destination, description=:description, price=:price, duration=:duration, type=:type, rating=:rating, image_url=:image_url, badge=:badge WHERE id=:id";
+            $query = "UPDATE packages SET 
+                      destination=:destination, 
+                      description=:description, 
+                      price=:price, 
+                      duration=:duration, 
+                      type=:type, 
+                      rating=:rating, 
+                      image_url=:image_url, 
+                      badge=:badge,
+                      itinerary=:itinerary,
+                      included=:included,
+                      excluded=:excluded,
+                      visa_requirements=:visa_requirements
+                      WHERE id=:id";
             $stmt = $this->conn->prepare($query);
 
             $stmt->bindValue(":destination", $data->destination);
@@ -112,6 +134,10 @@ class PackageController {
             $stmt->bindValue(":rating", isset($data->rating) ? $data->rating : '5.0');
             $stmt->bindValue(":image_url", isset($data->image_url) ? $data->image_url : '');
             $stmt->bindValue(":badge", isset($data->badge) ? $data->badge : '');
+            $stmt->bindValue(":itinerary", isset($data->itinerary) ? $data->itinerary : '');
+            $stmt->bindValue(":included", isset($data->included) ? $data->included : '');
+            $stmt->bindValue(":excluded", isset($data->excluded) ? $data->excluded : '');
+            $stmt->bindValue(":visa_requirements", isset($data->visa_requirements) ? $data->visa_requirements : '');
             $stmt->bindValue(":id", $data->id);
 
             if ($stmt->execute()) {
@@ -119,6 +145,26 @@ class PackageController {
             } else {
                 http_response_code(500);
                 echo json_encode(["message" => "Failed to update package"]);
+            }
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(["message" => "Database error: " . $e->getMessage()]);
+        }
+    }
+
+    private function getOne($id) {
+        try {
+            $query = "SELECT * FROM packages WHERE id = :id LIMIT 1";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(":id", $id);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() > 0) {
+                $package = $stmt->fetch(PDO::FETCH_ASSOC);
+                echo json_encode($package);
+            } else {
+                http_response_code(404);
+                echo json_encode(["message" => "Package not found"]);
             }
         } catch (PDOException $e) {
             http_response_code(500);

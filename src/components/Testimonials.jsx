@@ -1,32 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Quote, ArrowRight } from 'lucide-react';
-
-const testimonials = [
-    {
-        name: 'Suman Thapa',
-        role: 'Business Traveler',
-        content: 'The ticketing service is impeccable. They found me the best prices for my last-minute trip to London. Truly elite service!',
-        rating: 5,
-        avatar: 'https://i.pravatar.cc/150?u=suman',
-    },
-    {
-        name: 'Anjali Sharma',
-        role: 'Honeymoon Traveler',
-        content: 'Our Maldives trip was like a dream. Everything from visa to hotel was handled perfectly. We didn’t have to worry about a thing.',
-        rating: 5,
-        avatar: 'https://i.pravatar.cc/150?u=anjali',
-    },
-    {
-        name: 'Robert Wilson',
-        role: 'Adventurer',
-        content: 'Exploring Nepal with TravelQuest was the highlight of my year. The local guides were knowledgeable and the itinerary was perfect.',
-        rating: 5,
-        avatar: 'https://i.pravatar.cc/150?u=robert',
-    },
-];
+import { Star, Quote, ArrowRight, Loader2 } from 'lucide-react';
+import { getTestimonials } from '../api/testimonials';
 
 const Testimonials = () => {
+    const [testimonials, setTestimonials] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetch = async () => {
+            try {
+                const data = await getTestimonials();
+                setTestimonials(data);
+            } catch (err) {
+                console.error("Failed to fetch testimonials", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetch();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="py-20 flex justify-center items-center">
+                <Loader2 className="animate-spin text-brand-primary" size={40} />
+            </div>
+        );
+    }
+
+    if (testimonials.length === 0) return null;
     return (
         <section className="py-20 md:py-32 bg-white overflow-hidden">
             <div className="section-container">
@@ -62,7 +65,7 @@ const Testimonials = () => {
                             </div>
 
                             <div className="flex mb-6 md:mb-8 space-x-1">
-                                {[...Array(t.rating)].map((_, i) => (
+                                {[...Array(Number(t.rating) || 5)].map((_, i) => (
                                     <Star key={i} size={14} className="text-brand-secondary fill-brand-secondary md:w-4 md:h-4" />
                                 ))}
                             </div>

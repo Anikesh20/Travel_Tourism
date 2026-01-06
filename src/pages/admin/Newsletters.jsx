@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Trash2, Search, Download, Calendar, HelpCircle } from 'lucide-react';
 import { newsletterService } from '../../services/api';
+import Toast from '../../components/admin/Toast';
 
 const Newsletters = () => {
     const [subscribers, setSubscribers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
+    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
     useEffect(() => {
         console.log('Newsletters: Fetching subscribers...');
@@ -28,15 +30,24 @@ const Newsletters = () => {
         }
     };
 
+    const showNotification = (message, type = 'success') => {
+        setNotification({ show: true, message, type });
+    };
+
+    const handleCloseNotification = () => {
+        setNotification(prev => ({ ...prev, show: false }));
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to remove this subscriber?')) return;
         try {
             const data = await newsletterService.delete(id);
             if (data.success) {
                 setSubscribers(subscribers.filter(s => s.id !== id));
+                showNotification("Subscriber removed", "success");
             }
         } catch (error) {
-            alert('Failed to delete subscriber');
+            showNotification(error.message || "Failed to delete subscriber", "error");
         }
     };
 
@@ -58,8 +69,10 @@ const Newsletters = () => {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            showNotification("Newsletter list exported as CSV", "success");
         } catch (e) {
             console.error('Export failed', e);
+            showNotification("Export failed", "error");
         }
     };
 
@@ -79,7 +92,13 @@ const Newsletters = () => {
     }
 
     return (
-        <div className="space-y-8 text-brand-primary">
+        <div className="space-y-8 text-brand-primary relative">
+            <Toast
+                show={notification.show}
+                message={notification.message}
+                type={notification.type}
+                onClose={handleCloseNotification}
+            />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-4xl font-black tracking-tighter">Newsletters</h1>

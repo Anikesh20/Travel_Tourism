@@ -19,6 +19,8 @@ import Admins from './pages/admin/Admins';
 import AdminPackages from './pages/admin/Packages';
 import AdminEnquiries from './pages/admin/Enquiries';
 import AdminNewsletters from './pages/admin/Newsletters';
+import AdminBookings from './pages/admin/Bookings';
+import AdminTestimonials from './pages/admin/Testimonials';
 
 const PublicLayout = () => {
     return (
@@ -56,8 +58,10 @@ function App() {
                     <Route path="settings" element={<AdminSettings />} />
                     <Route path="admins" element={<Admins />} />
                     <Route path="packages" element={<AdminPackages />} />
+                    <Route path="bookings" element={<AdminBookings />} />
                     <Route path="enquiries" element={<AdminEnquiries />} />
                     <Route path="newsletters" element={<AdminNewsletters />} />
+                    <Route path="testimonials" element={<AdminTestimonials />} />
                 </Route>
             </Routes>
         </Router>

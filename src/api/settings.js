@@ -20,7 +20,11 @@ export const updateSettings = async (settings) => {
 
 export const updateProfile = async (id, username, password) => {
     try {
-        const response = await apiClient.post('/auth/update-profile', { id, username, password });
+        const response = await apiClient.post('/auth/update-profile', {
+            id,
+            username,
+            password
+        });
         return response.data;
     } catch (error) {
         throw error.response ? error.response.data : { message: 'Network Error' };

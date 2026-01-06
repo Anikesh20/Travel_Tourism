@@ -1,5 +1,6 @@
 <?php
 include_once __DIR__ . '/../config/Database.php';
+include_once __DIR__ . '/../config/NotificationService.php';
 
 class EnquiryController {
     private $db;
@@ -76,6 +77,30 @@ class EnquiryController {
             $stmt->bindValue(":message", isset($data->message) ? $data->message : '');
 
             if ($stmt->execute()) {
+                // Send Notification to Admin
+                $notifier = new NotificationService();
+                $subject = "New Contact Enquiry";
+                
+                $htmlContent = "
+                    <div class='data-row'>
+                        <span class='label'>Customer Name</span>
+                        <span class='value'>" . htmlspecialchars($data->name) . "</span>
+                    </div>
+                    <div class='data-row'>
+                        <span class='label'>Email Address</span>
+                        <span class='value'>" . htmlspecialchars($data->email) . "</span>
+                    </div>
+                    <div class='data-row'>
+                        <span class='label'>Phone Number</span>
+                        <span class='value'>" . htmlspecialchars($data->phone) . "</span>
+                    </div>
+                    <div class='data-row'>
+                        <span class='label'>Message</span>
+                        <p class='value' style='white-space: pre-line; margin-top: 10px;'>" . htmlspecialchars($data->message) . "</p>
+                    </div>";
+                
+                $notifier->sendAdminNotification($subject, $htmlContent, 'enquiry');
+
                 http_response_code(201);
                 echo json_encode(["status" => "success", "message" => "Enquiry submitted successfully"]);
             } else {
