@@ -197,10 +197,26 @@ try {
         }
         $testimonialController = new TestimonialController();
         $testimonialController->handleRequest($_SERVER['REQUEST_METHOD']);
+    } elseif ($controllerName === 'debug') {
+        include_once __DIR__ . '/config/Database.php';
+        $db = new Database();
+        $conn = $db->getConnection();
+        if ($conn) {
+            $stmt = $conn->query("SHOW TABLES");
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            echo json_encode([
+                "status" => "success",
+                "message" => "Connected to database successfully",
+                "tables" => $tables
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode([
+                "status" => "error",
+                "message" => "Failed to connect to database. Check your Vercel Environment Variables and Aiven IP whitelist."
+            ]);
+        }
     } else {
-        http_response_code(404);
-        echo json_encode(["message" => "Endpoint not found: $controllerName"]);
-    }
 
 } catch (Exception $e) {
     http_response_code(500);
