@@ -27,6 +27,7 @@ try {
     // Example: /Travel%20and%20tourism/api/auth/login -> api found, next is auth
     // Example: /Travel%20and%20tourism/api/index.php/auth/login -> api found, next is index.php (SKIP), next is auth
     
+    // Improved Logic: Find 'api' in the path, or handle root if 'api' is the entry point
     $endpoint_index = -1;
     foreach($uri_parts as $key => $part) {
         if (strtolower(urldecode($part)) === 'api') {
@@ -36,22 +37,23 @@ try {
     }
 
     if ($endpoint_index === -1) {
-         throw new Exception("API segment not found in URL");
+        // Fallback for direct API calls in Vercel
+        $controllerName = isset($uri_parts[0]) ? strtolower(urldecode($uri_parts[0])) : null;
+        $methodName = isset($uri_parts[1]) ? strtolower(urldecode($uri_parts[1])) : null;
+    } else {
+        // Standard Skip index.php and find next parts
+        $next_index = $endpoint_index + 1;
+        if (isset($uri_parts[$next_index]) && strtolower($uri_parts[$next_index]) === 'index.php') {
+            $next_index++;
+        }
+        $controllerName = isset($uri_parts[$next_index]) ? strtolower(urldecode($uri_parts[$next_index])) : null;
+        $methodName = isset($uri_parts[$next_index + 1]) ? strtolower(urldecode($uri_parts[$next_index + 1])) : null;
     }
 
-    // Check next part
-    $next_index = $endpoint_index + 1;
-    if (isset($uri_parts[$next_index]) && strtolower($uri_parts[$next_index]) === 'index.php') {
-        $next_index++;
-    }
-
-    if (!isset($uri_parts[$next_index])) {
+    if (!$controllerName) {
         echo json_encode(["message" => "Welcome to Travel API"]);
         exit;
     }
-
-    $controllerName = strtolower(urldecode($uri_parts[$next_index]));
-    $methodName = isset($uri_parts[$next_index + 1]) ? strtolower(urldecode($uri_parts[$next_index + 1])) : null;
 
     if ($controllerName === 'auth' && $methodName === 'login') {
         $controllerPath = __DIR__ . '/controllers/AuthController.php';
@@ -146,7 +148,9 @@ try {
         $filepath = $uploadDir . $filename;
 
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
-            $url = '/Travel and tourism/api/uploads/packages/' . $filename;
+            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'];
+            $url = $protocol . '://' . $host . '/api/uploads/packages/' . $filename;
             echo json_encode(["message" => "Uploaded successfully", "url" => $url]);
         } else {
             http_response_code(500);
